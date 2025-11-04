@@ -893,13 +893,19 @@ function initTDGame() {
     gameArea = document.getElementById('game-area');
     drawMap(); // マップを描画すると同時に #tower-popup が #game-area に追加される
 
-    // コマの配置イベントをTDゲームエリアで設定
-    document.querySelectorAll('.tower-tile').forEach(tile => {
-        tile.onclick = (e) => {
+    // --- ▼▼▼ 修正箇所 (イベント委任) ▼▼▼ ---
+    // 親要素である gameArea にリスナーを設定する
+    gameArea.addEventListener('click', (e) => {
+        // クリックされた場所から一番近い .tower-tile を探す
+        const tile = e.target.closest('.tower-tile');
+        
+        // もし .tower-tile (またはその中) がクリックされていたら
+        if (tile) {
             const existingTower = towers.find(t => t.tileEl === tile);
             showTowerMenu(tile, existingTower);
-        };
+        }
     });
+    // --- ▲▲▲ 修正完了 ▲▲▲ ---
 }
 
 // コマの説明を生成する関数
