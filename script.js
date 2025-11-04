@@ -118,7 +118,7 @@ class Enemy {
         this.name = nameArray[nameIndex % nameArray.length]; 
         NAME_COUNTERS[type] = (nameIndex + 1);
 
-        // HP上昇を +50 から +100 に修正
+        // 敵のHP上昇を +100 に修正
         const hpBonus = (currentWave - 1) * 100; 
         this.hp = this.stats.hp + hpBonus;
 
@@ -268,7 +268,11 @@ class Tower {
         updateUI();
 
         this.tileEl.dataset.occupied = '';
-        this.tileEl.querySelector('.tower').remove();
+        // .tower 要素が存在するか確認してから削除
+        const towerEl = this.tileEl.querySelector('.tower');
+        if (towerEl) {
+            towerEl.remove();
+        }
         this.rangeEl.remove(); 
         
         showMessage(`${this.stats.name}を破棄し、${refund}Gを回収しました。`);
@@ -392,16 +396,22 @@ class Tower {
 // --- 4. マップとUIの描画関数 ---
 
 function updateUI() {
-    document.querySelector('#gold-display span').textContent = `${currentGold}G`;
-    document.querySelector('#life-display span').textContent = gameLife;
-    document.getElementById('current-wave-display').textContent = currentWave;
+    // UI要素がまだ存在しない可能性に対処
+    const goldEl = document.querySelector('#gold-display span');
+    const lifeEl = document.querySelector('#life-display span');
+    const waveEl = document.getElementById('current-wave-display');
+
+    if (goldEl) goldEl.textContent = `${currentGold}G`;
+    if (lifeEl) lifeEl.textContent = gameLife;
+    if (waveEl) waveEl.textContent = currentWave;
     
     // カギのUIをTDクリア後に表示
-    if (document.getElementById('key-ui')) {
+    const keyUiEl = document.getElementById('key-ui');
+    if (keyUiEl) {
         if (currentWave >= MAX_WAVE) {
-             document.getElementById('key-ui').classList.remove('hidden');
+             keyUiEl.classList.remove('hidden');
         } else {
-             document.getElementById('key-ui').classList.add('hidden');
+             keyUiEl.classList.add('hidden');
         }
     }
 }
@@ -440,13 +450,12 @@ function drawMap() {
     document.head.appendChild(styleEl);
     updateUI();
     
-    // ★★★ 修正箇所: ポップアップコンテナを drawMap で生成し、#game-areaを親にする ★★★
+    // ポップアップコンテナを drawMap で生成し、#game-areaを親にする
     if (!document.getElementById('tower-popup')) {
         const popup = document.createElement('div');
         popup.id = 'tower-popup';
         gameArea.appendChild(popup);
     }
-    // ★★★ ------------------------------------------------------------------ ★★★
 }
 
 function showMessage(text, duration = 1500) {
@@ -454,10 +463,12 @@ function showMessage(text, duration = 1500) {
     if (!msgEl) return;
     
     msgEl.textContent = text;
-    msgEl.className = 'visible'; 
+    msgEl.classList.remove('hidden'); // hiddenクラスを削除
+    msgEl.classList.add('visible');  // visibleクラスを追加
     
     setTimeout(() => {
-        msgEl.className = 'hidden';
+        msgEl.classList.remove('visible');
+        msgEl.classList.add('hidden');
     }, duration);
 }
 
@@ -514,14 +525,15 @@ function startWaves() {
         const indexInSequence = spawnCount % SPAWN_SEQUENCE.length; 
         
         let enemyType;
+        // W1-3で、シーケンスのインデックスが5以上になったら、それ以上出さない
         if (currentWave <= 3 && indexInSequence >= 5) {
-            // W1-3で6体目以降は出さない (enemiesToSpawn <= 5なので発生しないはずだが保険)
-            return; 
+             // W1-3は前半5体のみ。6体目以降のspawnCount (5, 6...) では何もしない
+             // ただし、spawnCountは進め続ける必要があるため、spawnCount++はループの外で行う
         } else {
             enemyType = SPAWN_SEQUENCE[indexInSequence];
+            spawnEnemyFromType(enemyType);
         }
-
-        spawnEnemyFromType(enemyType);
+        
         spawnCount++;
         
     }, 1500); // 1.5秒ごとに敵を生成
@@ -540,6 +552,7 @@ function checkWaveEnd() {
 }
 
 function spawnEnemyFromType(enemyType) {
+    if (!enemyType) return; // enemyTypeがundefinedの場合、何もしない
     const newEnemy = new Enemy(enemyType, sequenceIndex++); 
     enemies.push(newEnemy);
 }
@@ -547,6 +560,10 @@ function spawnEnemyFromType(enemyType) {
 function gameLoop(timestamp) {
     if (!isGameRunning) return;
 
+    // deltaTimeの計算 (初回実行時のエラー回避)
+    if (!lastTime) {
+        lastTime = timestamp;
+    }
     const deltaTime = (timestamp - lastTime) / 1000;
     lastTime = timestamp;
 
@@ -600,26 +617,30 @@ function gameLoop(timestamp) {
 
 // --- 6. 設置と終了画面 ---
 
-// ★★★ 新規追加: メニュー表示ヘルパー関数 ★★★
+// メニュー表示ヘルパー関数
 function showTowerMenu(tile, existingTower) {
     const popup = document.getElementById('tower-popup');
+    if (!popup) return; // ポップアップがまだ存在しない場合は何もしない
+    
     popup.style.left = tile.style.left;
     popup.style.top = tile.style.top;
     popup.style.display = 'block';
     
     // ポップアップを閉じるためのイベントリスナーを再設定
     const closePopup = (event) => {
-        // キャンセルボタン以外、またはメニュー外をクリックした場合に閉じる
-        // UPGRADEアクションはメニューを閉じない
-        if (event.target.closest('#tower-popup') && event.target.dataset.action !== 'CANCEL' && event.target.dataset.action !== 'UPGRADE') return;
-        if (event.target.closest('.tower-tile')) return; 
-
-        popup.style.display = 'none';
-        document.removeEventListener('click', closePopup);
+        // ポップアップ自体や、アップグレードボタンをクリックした場合は閉じない
+        if (event.target.closest('#tower-popup') && (event.target.dataset.action === 'UPGRADE')) return;
+        // ポップアップの外側をクリックした場合、またはキャンセル/破棄ボタンをクリックした場合
+        if (!event.target.closest('#tower-popup') || event.target.dataset.action === 'CANCEL' || event.target.dataset.action === 'SELL') {
+            popup.style.display = 'none';
+            document.removeEventListener('click', closePopup, true);
+        }
     };
     
-    // イベントリスナーを一度削除し、メニュー以外のクリックで閉じるように設定
-    document.addEventListener('click', closePopup, true); 
+    // 遅延させてイベントリスナーを設定し、即時クローズを防ぐ
+    setTimeout(() => {
+        document.addEventListener('click', closePopup, true); 
+    }, 0);
 
     // 既にタワーが置かれている場合 (管理ポップアップ)
     if (existingTower) {
@@ -638,20 +659,19 @@ function showTowerMenu(tile, existingTower) {
                 const action = btnEvent.target.dataset.action;
                 
                 if (action === 'UPGRADE') {
-                    const success = existingTower.upgrade();
-                    // 成功したら、メニューは閉じずに、アップグレードされた情報を再表示
-                    if (success) {
-                         // 連続強化成功時は、showTowerMenu内でclosePopupを再登録するため、ここで一旦閉じない
-                    }
+                    existingTower.upgrade();
+                    // 連続強化のため、ここでは閉じない (upgradeメソッドがshowTowerMenuを再度呼び出す)
                 } else if (action === 'SELL') {
                     existingTower.sell();
                     const index = towers.indexOf(existingTower);
                     if (index > -1) {
                         towers.splice(index, 1);
                     }
-                    popup.style.display = 'none';
+                    popup.style.display = 'none'; // 即時クローズ
+                    document.removeEventListener('click', closePopup, true);
                 } else if (action === 'CANCEL') {
-                    popup.style.display = 'none';
+                    popup.style.display = 'none'; // 即時クローズ
+                    document.removeEventListener('click', closePopup, true);
                 }
             };
         });
@@ -670,6 +690,7 @@ function showTowerMenu(tile, existingTower) {
             button.onclick = (btnEvent) => {
                 const type = btnEvent.target.dataset.type;
                 popup.style.display = 'none';
+                document.removeEventListener('click', closePopup, true);
                 if (type !== 'CANCEL') {
                     placeTower(type, tile);
                 }
@@ -701,7 +722,7 @@ function placeTower(type, tileEl) {
     
     const newTower = new Tower(type, stats, tileEl);
     towers.push(newTower);
-    newTower.updateVisuals(); 
+    // newTower.updateVisuals(); // constructorで既に呼ばれている
 }
 
 
@@ -725,6 +746,7 @@ function showGameOverScreen() {
 }
 
 function showGameClearScreen() {
+    isGameRunning = false; // ゲームループを止める
     const endScreen = document.getElementById('end-screen');
     const endMessage = document.getElementById('end-message');
     const endScore = document.getElementById('end-score');
@@ -739,7 +761,8 @@ function showGameClearScreen() {
     
     document.getElementById('restart-button').textContent = "脱出ゲームの続きへ";
     document.getElementById('restart-button').onclick = () => {
-        document.getElementById('app-root').style.display = 'none'; // #app-root全体を非表示
+        // TDゲームエリアを隠し、脱出ゲームの画面を表示する（将来の実装）
+        document.getElementById('td-game-area').classList.add('hidden'); 
         document.getElementById('end-screen').classList.add('hidden'); 
         startEscapeGame();
     };
@@ -757,12 +780,16 @@ function resetGame() {
     NAME_COUNTERS.B = 0; 
     NAME_COUNTERS.C = 0; 
     
+    // 既存のDOM要素をクリーンアップ
     enemies.forEach(e => e.el.remove());
     bullets.forEach(b => b.el.remove());
     towers.forEach(t => {
-        t.rangeEl.remove(); 
-        const tileEl = t.tileEl;
-        if (tileEl) tileEl.dataset.occupied = '';
+        if (t.rangeEl) t.rangeEl.remove(); 
+        if (t.tileEl) {
+            t.tileEl.dataset.occupied = '';
+            const towerVisual = t.tileEl.querySelector('.tower');
+            if (towerVisual) towerVisual.remove();
+        }
     });
     enemies.length = 0;
     bullets.length = 0;
@@ -776,8 +803,7 @@ function resetGame() {
     
     // TDゲームエリア内のすべての要素を削除し、マップを再描画
     if (gameArea) {
-        const popup = document.getElementById('tower-popup');
-        if (popup) popup.remove(); // ポップアップを一度削除
+        // マップ要素（タイル、スタート、ゴール）を再描画
         gameArea.innerHTML = '<div id="enemy-container"></div>'; 
         drawMap();
     }
@@ -798,16 +824,31 @@ function startGame() {
 
 function startEscapeGame() {
     // ★★★ 次のステップ: 脱出ゲームのロジックがここに入る ★★★
-    document.body.style.backgroundColor = '#222'; // 背景色を戻す
-    document.getElementById('app-root').style.display = 'flex'; // app-rootを表示に戻す
-    document.getElementById('app-root').innerHTML = `
-        <div id="escape-room-1" class="app-screen">
-            <h1>部屋1：カギを手に入れた！</h1>
-            <p>ドアを開けよう。カギを使いますか？</p>
-            <button onclick="alert('脱出成功！誕生日おめでとう！')">カギを使う</button>
-            <button onclick="alert('まだ脱出は早い！')">調べる</button>
-        </div>
+    document.getElementById('app-root').style.backgroundColor = '#222'; // 背景色を戻す
+    document.getElementById('td-game-area').classList.add('hidden'); // TDゲームを隠す
+    
+    // 脱出ゲームの画面を動的に生成
+    const escapeRoomScreen = document.createElement('div');
+    escapeRoomScreen.id = 'escape-room-1';
+    escapeRoomScreen.className = 'app-screen';
+    escapeRoomScreen.style.zIndex = 1001; // 最前面に
+    escapeRoomScreen.innerHTML = `
+        <h1 style="color: gold;">部屋1：カギを手に入れた！</h1>
+        <p style="color: white;">ドアを開けよう。カギを使いますか？</p>
+        <button id="use-key-button" class="action-button">カギを使う</button>
+        <button id="look-around-button" class="action-button">まだ調べる</button>
     `;
+    
+    document.getElementById('app-root').appendChild(escapeRoomScreen);
+    
+    // alert() の代わりにカスタムメッセージを使う
+    document.getElementById('use-key-button').onclick = () => {
+         escapeRoomScreen.innerHTML = `<h1 style="color: #4CAF50;">脱出成功！誕生日おめでとう！</h1><p style="color: white;">（君からのメッセージ）</p>`;
+    };
+    document.getElementById('look-around-button').onclick = () => {
+         showMessage("まだ何か見落としがあるかもしれない...", 2000);
+    };
+
     console.log("TDクリア！脱出ゲームの次のステップへ移行します。");
 }
 
@@ -867,12 +908,17 @@ function setupDescriptions(container) {
     Object.values(TOWER_STATS).forEach(stats => {
         const item = document.createElement('div');
         item.className = 'tower-desc-item';
+        // Lv1 -> Lv2 の上昇率を表示
+        const upgradeRateLv1 = calculateUpgradeRate(1);
+        const powerRate = (upgradeRateLv1 * 0.7 * 100).toFixed(0);
+        const speedRate = (upgradeRateLv1 * 0.85 * 1.1 * 100).toFixed(0);
+
         item.innerHTML = `
             <h3 style="color:${stats.color};">${stats.name}</h3>
             <p>
                 コスト: ${stats.cost}G / 攻撃力: ${stats.power.toFixed(0)} / 射程: ${stats.range.toFixed(0)} / 攻撃速度: ${stats.speed.toFixed(1)}回/秒
                 <br>
-                Lvアップ時: 攻/射 ${Math.round(calculateUpgradeRate(1) * 100)}%↑ / 速 ${Math.round(calculateUpgradeRate(1) * 100 * 0.85 * 1.1)}%↑
+                Lvアップ時: 攻/射 ${powerRate}%↑ / 速 ${speedRate}%↑
             </p>
         `;
         container.appendChild(item);
