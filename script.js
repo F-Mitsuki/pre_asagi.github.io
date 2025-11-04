@@ -60,9 +60,9 @@ const C_NAMES = [
 const NAME_COUNTERS = { A: 0, B: 0, C: 0 };
 
 const ENEMY_STATS = {
-    A: { hp: 100, speed: 100, reward: 10, color: 'blue' },
-    B: { hp: 50, speed: 150, reward: 15, color: 'green' },
-    C: { hp: 200, speed: 75, reward: 20, color: 'orange' }
+    A: { hp: 300, speed: 100, reward: 10, color: 'blue' },
+    B: { hp: 150, speed: 150, reward: 15, color: 'green' },
+    C: { hp: 500, speed: 75, reward: 20, color: 'orange' }
 };
 
 const SPAWN_SEQUENCE = [
@@ -225,10 +225,10 @@ class Tower {
         updateUI();
 
         // 攻撃力・射程の上昇率を 70% に抑える
-        const powerRangeRate = baseRate * 0.7; 
+        const powerRangeRate = baseRate * 0.6; 
         
         // 攻撃スピードの上昇率 (他のステータスより15%低い) を 1.1倍で底上げ
-        const speedRate = baseRate * 0.85 * 1.1; 
+        const speedRate = baseRate * 0.65 * 1.1; 
 
         // ★★★ 速度の値が増えることで速度アップ (1 + rate) ★★★
         this.stats.power *= (1 + powerRangeRate);
