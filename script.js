@@ -106,7 +106,7 @@ function calculateUpgradeRate(currentLevel) {
 class Enemy {
     constructor(type, index) {
         this.type = type;
-        this.stats = ENEMY_STATS[type];
+        this.stats = { ...ENEMY_STATS[type] };
         this.hp = this.stats.hp;
         this.currentWaypoint = 0;
         this.isAlive = true;
@@ -123,9 +123,13 @@ class Enemy {
             this.name = `敵 ${type}`; // デフォルト名
         }
 
+        const hpBonus = (currentWave - 1) * 50; // HPボーナス (+50/wave)
+        const speedBonus = (currentWave - 1) * 10; // 速度ボーナス (+10/wave)
+        
+        this.hp = this.stats.hp + hpBonus;
+        this.stats.speed += speedBonus;
+        
         // 最終バランス: ウェーブごとのHPボーナスは「なし」
-        this.hp = this.stats.hp; 
-
         this.el = document.createElement('div');
         this.el.className = 'enemy';
         this.el.id = this.id;
@@ -209,6 +213,7 @@ class Tower {
         this.tileEl = tileEl;
         this.level = 1;
         this.lastAttackTime = 0; 
+        this.totalInvestedGold = this.stats.cost;
         
         this.centerX = parseInt(tileEl.style.left) + 25;
         this.centerY = parseInt(tileEl.style.top) + 25;
@@ -221,16 +226,21 @@ class Tower {
     }
     
     upgrade() {
+        if (this.level >= 5) {
+            showMessage("もうこいつこれ以上伸びしろない");
+            return false;
+        }
         const cost = calculateUpgradeCost(this.level); 
         const baseRate = calculateUpgradeRate(this.level); 
         
         if (currentGold < cost) {
-            showMessage(`レベルアップに${cost}足りん。計算もできないのか？`);
+            showMessage(`レベルアップに${cost}G足りん。計算もできないのか？`);
             return false;
         }
 
         currentGold -= cost;
         updateUI();
+        this.totalInvestedGold += cost;
 
         // 最終バランス調整 (攻撃射程60%, 速度0.65*1.1)
         const powerRangeRate = baseRate * 0.6; 
@@ -264,8 +274,9 @@ class Tower {
     }
 
     sell() {
-        const baseCost = TOWER_STATS[this.type].cost;
-        const refund = Math.floor(baseCost * 0.5); 
+        // const baseCost = TOWER_STATS[this.type].cost;
+        // const refund = Math.floor(baseCost * 0.5); 
+        const refund = Math.floor(this.totalInvestedGold * 0.7); // 総投資額の70%
         currentGold += refund;
         updateUI();
 
@@ -278,7 +289,6 @@ class Tower {
         
         showMessage(`${this.stats.name}を破棄し、${refund}G回収。`);
     }
-
     attack(deltaTime) {
         if (!isGameRunning) return;
 
@@ -529,6 +539,10 @@ function startWaves() {
     }
 
     let spawnCount = 0;
+    // (1500ms - 300ms) / 9 intervals = 133.3ms per wave
+    const spawnInterval = Math.max(300, 1500 - (currentWave - 1) * 133.3);
+    console.log(`現在の出現間隔: ${spawnInterval.toFixed(0)} ms`);
+
     
     enemySpawnTimer = setInterval(() => {
         
@@ -551,7 +565,7 @@ function startWaves() {
         
         spawnCount++;
         
-    }, 1500); 
+    }, spawnInterval); 
 }
 
 function checkWaveEnd() {
@@ -635,22 +649,19 @@ function showTowerMenu(tile, existingTower) {
     const popup = document.getElementById('tower-popup');
     if (!popup) return; 
     
-    
     popup.style.left = tile.style.left;
     popup.style.top = tile.style.top;
     popup.style.display = 'block';
     
-    // ポップアップを閉じるためのイベントリスナー
+    // (closePopup イベントリスナーはそのまま)
     const closePopup = (event) => {
         if (event.target.closest('#tower-popup') && (event.target.dataset.action === 'UPGRADE')) return;
         if (event.target.closest('.tower-tile') === tile) return; 
-
         if (!event.target.closest('#tower-popup') || event.target.dataset.action === 'CANCEL' || event.target.dataset.action === 'SELL') {
             popup.style.display = 'none';
             document.removeEventListener('click', closePopup, true);
         }
     };
-    
     setTimeout(() => {
         document.addEventListener('click', closePopup, true); 
     }, 0);
@@ -658,11 +669,18 @@ function showTowerMenu(tile, existingTower) {
     // 既にタワーが置かれている場合
     if (existingTower) {
         const upgradeCost = calculateUpgradeCost(existingTower.level); 
-        const sellRefund = Math.floor(TOWER_STATS[existingTower.type].cost * 0.5); 
+        const sellRefund = Math.floor(existingTower.totalInvestedGold * 0.7); // ★修正: totalInvestedGoldを参照
         
+        // ★★★ 修正: Lv5キャップのボタン制御 ★★★
+        let upgradeButtonHTML = `<button data-action="UPGRADE">レベルアップ (${upgradeCost}G)</button>`;
+        if (existingTower.level >= 5) {
+            upgradeButtonHTML = `<button data-action="UPGRADE" disabled style="color: grey; cursor: not-allowed;">最大レベル</button>`;
+        }
+        // ★★★ -------------------------- ★★★
+
         popup.innerHTML = `
             <p>${existingTower.stats.name} (Lv.${existingTower.level})</p>
-            <button data-action="UPGRADE">レベルアップ (${upgradeCost}G)</button>
+            ${upgradeButtonHTML} 
             <button data-action="SELL">破棄 (${sellRefund}G 回収)</button>
             <button data-action="CANCEL">キャンセル</button>
         `;
@@ -673,7 +691,9 @@ function showTowerMenu(tile, existingTower) {
                 const action = btnEvent.target.dataset.action;
                 
                 if (action === 'UPGRADE') {
-                    existingTower.upgrade();
+                    if (existingTower.level < 5) { // 念のため再チェック
+                        existingTower.upgrade();
+                    }
                 } else if (action === 'SELL') {
                     existingTower.sell();
                     const index = towers.indexOf(existingTower);
@@ -690,7 +710,7 @@ function showTowerMenu(tile, existingTower) {
         });
 
     } else {
-        // タワーが置かれていない場合 (新規設置)
+        // (新規設置のロジックはそのまま)
         popup.innerHTML = `
             <p>コマを選択:</p>
             <button data-type="SWORD">剣兵 (${TOWER_STATS.SWORD.cost}G)</button>
@@ -698,7 +718,6 @@ function showTowerMenu(tile, existingTower) {
             <button data-type="CANNON">大砲兵 (${TOWER_STATS.CANNON.cost}G)</button>
             <button data-type="CANCEL">キャンセル</button>
         `;
-        
         popup.querySelectorAll('button').forEach(button => {
             button.onclick = (btnEvent) => {
                 btnEvent.stopPropagation(); 
@@ -712,7 +731,6 @@ function showTowerMenu(tile, existingTower) {
         });
     }
 }
-
 
 function placeTower(type, tileEl) {
     const stats = TOWER_STATS[type];
