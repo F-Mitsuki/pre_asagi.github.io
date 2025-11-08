@@ -956,8 +956,156 @@ function startEscapeGame() {
 // --- 7. DOMContentLoaded ---
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 全画面の要素を取得
+    const countdownScreen = document.getElementById('countdown-screen');
+    const titleScreen = document.getElementById('title-screen');
+    const explanationScreen = document.getElementById('explanation-screen');
+    const tdGameArea = document.getElementById('td-game-area');
+
+    // ボタン要素を取得
+    const gotoTitleButton = document.getElementById('goto-title-button');
+    const startButton = document.getElementById('start-button');
+    const tdStartButton = document.getElementById('td-start-button');
+    
+    // TDゲーム本体の初期化（マップ描画など）
     initTDGame(); 
+
+    // --- 星空とカウントダウンの初期化 ---
+    initStarrySky(); // ユーザー提供のJS (init()から改名)
+    startCountdown(); // カウントダウンタイマー起動
+
+    // --- イベントリスナーの設定 ---
+    
+    // 1. カウントダウン -> タイトルへ
+    gotoTitleButton.onclick = () => {
+        countdownScreen.classList.add('hidden');
+        titleScreen.classList.remove('hidden');
+    };
+
+    // 2. タイトル -> 説明へ
+    startButton.onclick = () => {
+        titleScreen.classList.add('hidden');
+        explanationScreen.classList.remove('hidden');
+        setupDescriptions(document.getElementById('tower-descriptions')); 
+    };
+    
+    // 3. 説明 -> TDゲーム開始
+    tdStartButton.onclick = () => {
+        explanationScreen.classList.add('hidden');
+        startGame(); // TDゲームのロジック開始
+    };
+
+    // --- 最初の画面表示 ---
+    countdownScreen.classList.remove('hidden'); // カウントダウン画面を最初に表示
+    titleScreen.classList.add('hidden');
+    explanationScreen.classList.add('hidden');
+    tdGameArea.classList.add('hidden');
+    document.getElementById('end-screen').classList.add('hidden');
 });
+
+// ユーザー提供の星空JS (init()から改名し、バグ修正)
+function initStarrySky() {
+    var style = ["style1", "style2", "style3", "style4"];
+    var tam = ["tam1", "tam1", "tam1", "tam2", "tam3"];
+    var opacity = ["opacity1", "opacity1", "opacity1", "opacity2", "opacity2", "opacity3"];
+    function getRandomArbitrary(min, max) {
+      return Math.floor(Math.random() * (max - min)) + min;
+    }
+    var star = "";
+    var numStars = 200;
+    var starry_sky = document.querySelector(".constellation");
+    if (!starry_sky) return; // 要素がなければ何もしない
+    
+    // #countdown-screen のサイズを基準にする
+    var widthWindow = document.getElementById('countdown-screen').clientWidth;
+    var heightWindow = document.getElementById('countdown-screen').clientHeight;
+    for (var i = 0; i < numStars; i++) {
+      star += "<span class='star " + style[getRandomArbitrary(0, 4)] + " " + opacity[getRandomArbitrary(0, 6)] + " "
+      + tam[getRandomArbitrary(0, 5)] + "' style='animation-delay: ." +getRandomArbitrary(0, 9)+ "s; left: "
+      + getRandomArbitrary(0, widthWindow) + "px; top: " + getRandomArbitrary(0, heightWindow) + "px;'></span>";
+    }
+    starry_sky.innerHTML = star;
+}
+
+// カウントダウン関数
+function startCountdown() {
+    const countdownElement = document.getElementById('countdown-timer');
+    if (!countdownElement) return;
+    
+    // 11月11日の午前0時 (JST)
+    // 注: 月は0から始まるため、11月は「10」と指定する
+    const targetDate = new Date(2025, 10, 11, 0, 0, 0); 
+
+    function updateTimer() {
+        const now = new Date();
+        const diff = targetDate - now;
+
+        if (diff <= 0) {
+            countdownElement.innerHTML = "🎉 誕生日おめでとう！ 🎉";
+            if(timerInterval) clearInterval(timerInterval);
+            return;
+        }
+
+        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+        countdownElement.innerHTML = `
+            <span>${d}</span>日
+            <span>${h.toString().padStart(2, '0')}</span>時間
+            <span>${m.toString().padStart(2, '0')}</span>分
+            <span>${s.toString().padStart(2, '0')}</span>秒
+        `;
+    }
+
+    const timerInterval = setInterval(updateTimer, 1000);
+    updateTimer(); // 初回実行
+}
+
+
+// TDゲームの初期設定 (既存の関数)
+function initTDGame() {
+    // TDゲーム関連のDOM要素の取得
+    gameArea = document.getElementById('game-area');
+    if (!gameArea) return; // gameAreaがなければ何もしない
+    
+    drawMap(); // マップとポップアップコンテナを描画
+
+    // イベント委任を gameArea に設定
+    gameArea.addEventListener('click', (e) => {
+        const tile = e.target.closest('.tower-tile');
+        
+        if (tile) {
+            const existingTower = towers.find(t => t.tileEl === tile);
+            showTowerMenu(tile, existingTower);
+        }
+    });
+}
+
+// コマの説明を生成する関数 (既存の関数)
+function setupDescriptions(container) {
+    if (!container) return;
+    container.innerHTML = ''; 
+    Object.values(TOWER_STATS).forEach(stats => {
+        const item = document.createElement('div');
+        item.className = 'tower-desc-item';
+        
+        const upgradeRateLv1 = calculateUpgradeRate(1);
+        const powerRate = (upgradeRateLv1 * 0.7 * 100).toFixed(0);
+        const speedRate = (upgradeRateLv1 * 0.85 * 1.1 * 100).toFixed(0);
+
+        item.innerHTML = `
+            <h3 style="color:${stats.color};">${stats.name}</h3>
+            <p>
+                コスト: ${stats.cost}G / 攻撃力: ${stats.power.toFixed(0)} / 射程: ${stats.range.toFixed(0)} / 攻撃速度: ${stats.speed.toFixed(1)}回/秒
+                <br>
+                Lvアップ時(Lv1): 攻/射 ${powerRate}%↑ / 速 ${speedRate}%↑
+            </p>
+        `;
+        container.appendChild(item);
+    });
+}
 
 function setupTileClickListeners() {
     // コマの配置イベントをTDゲームエリアで設定
