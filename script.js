@@ -32,7 +32,7 @@ const enemies = [];
 const bullets = []; // 画面上の弾を格納
 let enemySpawnTimer = null;
 let currentWave = 0; // 現在のウェーブ数
-const MAX_WAVE = 1; //デバッグ用: 1ウェーブでクリア(元に戻す場合は 10)
+const MAX_WAVE = 10; //デバッグ用: 1ウェーブでクリア(元に戻す場合は 10)
 let waveTimer; // ウェーブ間の待機用タイマー
 
 // コマのステータス: ユーザー調整後の最新データ
