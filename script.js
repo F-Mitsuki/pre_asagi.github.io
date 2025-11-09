@@ -38,7 +38,7 @@ let waveTimer; // ウェーブ間の待機用タイマー
 // コマのステータス: ユーザー調整後の最新データ
 const TOWER_STATS = {
     SWORD: { cost: 10, power: 30, range: 150, speed: 2.0, name: '剣兵', color: 'red' }, 
-    ARCHER: { cost: 30, power: 20, range: 200, speed: 1.5, name: '弓兵', color: 'cyan' },
+    ARCHER: { cost: 30, power: 30, range: 200, speed: 1.5, name: '弓兵', color: 'cyan' },
     CANNON: { cost: 50, power: 50, range: 300, speed: 1.0, name: '大砲兵', color: 'purple' } 
 };
 
@@ -237,7 +237,7 @@ class Tower {
         const baseRate = calculateUpgradeRate(this.level); 
         
         if (currentGold < cost) {
-            showMessage(`レベルアップに${cost}G足りん。計算もできないのか？`);
+            showMessage(`レベルアップに${cost}G足りん。計算もできんのん？`);
             return false;
         }
 
