@@ -738,7 +738,7 @@ function placeTower(type, tileEl) {
     const stats = TOWER_STATS[type];
     
     if (currentGold < stats.cost) {
-        showMessage("お金が足りない。また借金する気か？");
+        showMessage("お金が足りない。また借金する気？");
         return;
     }
 
@@ -789,11 +789,11 @@ function showGameClearScreen() {
     const keyUiEl = document.getElementById('key-ui');
     if (keyUiEl) keyUiEl.classList.remove('hidden');
     
-    endMessage.textContent = "ゲームクリア！脱出のカギを獲得！";
+    endMessage.textContent = "ゲームクリア！カギを獲得！";
     endMessage.style.color = "gold"; 
     endScreen.classList.remove('hidden');
     
-    document.getElementById('restart-button').textContent = "脱出ゲームの続きへ";
+    document.getElementById('restart-button').textContent = "続きへ";
     document.getElementById('restart-button').onclick = () => {
         document.getElementById('td-game-area').classList.add('hidden'); 
         document.getElementById('end-screen').classList.add('hidden'); 
@@ -916,7 +916,7 @@ function startEscapeGame() {
     
     // 画面の内容を設定
     escapeRoomScreen.innerHTML = `
-        <h1 style="color: gold;">部屋1：カギを手に入れた！</h1>
+        <h1 style="color: gold;">カギを手に入れた！</h1>
         <p style="color: white;">カギを使いますか？</p>
         <button id="use-key-button" class="action-button">カギを使う</button>
         <button id="look-around-button" class="action-button">まだ調べる</button>
@@ -946,8 +946,8 @@ function startEscapeGame() {
     // 新しいボタンにイベントリスナーを設定
     document.getElementById('use-key-button').onclick = () => {
          escapeRoomScreen.innerHTML = `
-            <h1 style="color: #4CAF50; font-size: 40px; text-align: center;">脱出成功！<br>誕生日おめでとう~</h1>
-            <p style="color: white; font-size: 18px; padding: 0 20px; text-align: center;">次はどんな個人情報を教えてくれるの？</p>
+            <h1 style="color: #4CAF50; font-size: 40px; text-align: center;">脱出成功！<br>誕生日おめでとう〜</h1>
+            <p style="color: white; font-size: 18px; padding: 0 20px; text-align: center;">次はどんな個人情報を教えてくれるん？</p>
          `;
     };
     
