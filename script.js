@@ -770,9 +770,13 @@ function showGameOverScreen() {
     
     endMessage.textContent = "ゲームオーバー";
     endMessage.style.color = "red";
-    
-    endScore.textContent = `最終ゴールド: ${currentGold}G`;
-    
+    endScore.innerHTML = `
+        到達ウェーブ: ${currentWave} / ${MAX_WAVE}<br>
+        最終ゴールド: ${currentGold}G
+        <br><br>
+        くはさ→きのこ<br>
+        まえそうぢうぎけ→？？？？
+    `;
     endScreen.classList.remove('hidden');
     
     document.getElementById('restart-button').onclick = () => {
@@ -785,7 +789,7 @@ function showGameClearScreen() {
     const endScreen = document.getElementById('end-screen');
     const endMessage = document.getElementById('end-message');
     const endScore = document.getElementById('end-score');
-    
+    endScore.textContent = `最終ゴールド: ${currentGold}G`; 
     const keyUiEl = document.getElementById('key-ui');
     if (keyUiEl) keyUiEl.classList.remove('hidden');
     
