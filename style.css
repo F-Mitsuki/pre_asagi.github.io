@@ -506,15 +506,86 @@ body {
     transform: translateY(4px);
     box-shadow: none;
 }
+
 /* --- 画面の重なり順 (Z-index) 制御 --- */
-#countdown-screen { z-index: 1005; } /* 1. カウントダウン (最優先) */
-#title-screen { z-index: 1004; }     /* 2. タイトル */
-#explanation-screen { z-index: 1003; } /* 3. 説明 */
-#td-game-area { z-index: 1002; }     /* 4. TDゲーム本体 */
-#end-screen { z-index: 1006; }       /* 5. 終了画面 (常に最前面) */
+#countdown-screen { z-index: 1005; }   /* 1. カウントダウン */
+#title-screen { z-index: 1004; }       /* 2. タイトル */
+#explanation-screen { z-index: 1003; } /* 3. コマ説明 */
+#tutorial-screen { z-index: 1002; }    /* 4. 操作説明 (追加)*/
+#td-game-area { z-index: 1001; }       /* 5. TDゲーム本体 (順位下げ) */
+#end-screen { z-index: 1006; }         /* 6. 終了画面 (TDよりは上) */
+
+/* --- ポップアップ (常に最前面) --- */
+#wave-popup { z-index: 1007; }
+#message-area { z-index: 1008; }
+#tower-popup { z-index: 1009; }        /* タワーメニューが最強 */
+
 
 /* メッセージ関連も最前面に */
 #wave-popup { z-index: 1007; }
 #message-area { z-index: 1008; }
 #tower-popup { z-index: 1009; } /* タワーメニューが最強 */
 
+/* --- 4. 操作説明画面 (tutorial-screen) --- */
+#tutorial-screen {
+    background-color: #555;
+    color: white;
+    padding: 20px;
+    justify-content: space-around;
+}
+#tutorial-screen h2 {
+    font-size: 30px;
+    color: #FFD700;
+}
+#tutorial-content {
+    width: 90%;
+}
+.tutorial-item {
+    display: flex;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+.tutorial-icon {
+    width: 50px;
+    height: 50px;
+    margin-right: 20px;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+}
+.green-box {
+    background-color: green;
+    border: 1px solid #0f0;
+}
+.tower-icon {
+    background-color: red; /* 剣兵の色 */
+    border: 2px solid #fff;
+    border-radius: 5px;
+    color: yellow;
+}
+.tutorial-item p {
+    margin: 0;
+    font-size: 18px;
+}
+
+/* ゲームスタートボタン (td-start-button と同じスタイル) */
+#tutorial-start-button {
+    padding: 15px 50px;
+    font-size: 24px;
+    border-radius: 30px;
+    background-color: #4CAF50; /* 緑背景 */
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 5px 0 #388E3C;
+    transition: all 0.1s;
+}
+#tutorial-start-button:active {
+    transform: translateY(5px);
+    box-shadow: none;
+}
