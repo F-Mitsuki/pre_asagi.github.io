@@ -36,7 +36,27 @@
             </div>
             <button id="td-start-button">ゲームスタート</button>
         </div>
+        <!-- 4. 操作説明画面 -->
+        <div id="tutorial-screen" class="app-screen hidden">
+            <h2>あそびかた</h2>
+            <div id="tutorial-content">
+                <div class="tutorial-item">
+                    <div class="tutorial-icon green-box"></div>
+                    <p>緑のマスをクリックしてタワーを設置</p>
+                </div>
+                <div class="tutorial-item">
+                    <div class="tutorial-icon tower-icon">Lv.1</div>
+                    <p>設置したタワーをクリックしてアップグレード / 破棄</p>
+                </div>
+            </div>
+            <button id="tutorial-start-button">ゲームスタート</button>
+        </div>
+        <!-- ★★★ ここまで追加 ★★★ -->
 
+        <!-- 5. TDゲーム本体 (旧 4.) -->
+        <div id="td-game-area" class="app-screen hidden">
+            <!-- (中身はそのまま) -->
+        </div>
         <!-- 3. TDゲーム本体 -->
         <div id="td-game-area" class="app-screen hidden">
             
@@ -69,4 +89,5 @@
     <script src="script.js"></script>
 </body>
 </html>
+
 
